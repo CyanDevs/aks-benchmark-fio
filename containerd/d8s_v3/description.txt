@@ -1,0 +1,1 @@
+Standard_D8S_V3 node with 8 cores.
