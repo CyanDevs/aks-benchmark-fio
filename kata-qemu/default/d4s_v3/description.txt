@@ -1,1 +1,0 @@
-Standard_D4S_V3 node with 4 cores running kata-container vpu=1, mem=2G

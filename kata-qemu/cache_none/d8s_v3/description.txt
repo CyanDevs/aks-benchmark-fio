@@ -1,1 +1,0 @@
-Standard_D8S_V3 node with 8 cores running kata-container vpu=1, mem=2G and virtio-fs CACHE=NONE

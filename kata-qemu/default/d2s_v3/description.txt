@@ -1,2 +1,0 @@
-Standard_D2S_V3 node with 2 cores, 8G mem, 128G disk running kata-container vpu=1, mem=2G
-
