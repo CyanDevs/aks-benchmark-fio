@@ -1,7 +1,7 @@
 #!/bin/python3
 
 # Copyright (c) Open Enclave SDK contributors.
-# Licensed under the MIT Licen
+# Licensed under the MIT License
 
 import argparse
 import os
@@ -10,9 +10,11 @@ import re
 import subprocess
 import sys
 import traceback
-
+import threading
 
 class Benchmark:
+    lock = threading.Lock()
+
     template = """
 apiVersion: batch/v1
 kind: Job
@@ -27,7 +29,7 @@ spec:
       %s
       containers:
       - name: fio-test
-        image: mocha81/fio-3.16
+        image: sagoel/fio:3.16
         command: [
           "sh",
           "-c",
@@ -36,7 +38,7 @@ spec:
       restartPolicy: "Never"
   backoffLimit: 0
 """
-    def __init__(folder, cluster, resource_group, subscription, runtime_class, update_cache):
+    def __init__(self, folder, cluster, resource_group, subscription, runtime_class, update_cache):
         self.folder = folder
         self.cluster = cluster
         self.resource_group = resource_group
@@ -47,7 +49,7 @@ spec:
         self.cache = None
         self.normalized_cache = None
 
-    def gen_jobs(self, options):
+    def gen_jobs(self, options, cmd):
         jobs = []
         def gen(options, cmd):
             if len(options) == 0:
@@ -56,8 +58,6 @@ spec:
                 opt, options = options[0], options[1:]
                 name = opt[0]
                 values = opt[1:]
-                if name in args and args[name]:
-                    values = args[name].split(' ')
 
                 if len(values) == 1 and isinstance(values[0], tuple):
                     values = values[0]
@@ -68,7 +68,6 @@ spec:
                     for v in values:
                         gen(options, cmd + str(v))
                 else:
-                    gen(options, cmd)
                     gen(options, cmd + ' --' + name)
 
         gen(options, cmd)
@@ -86,61 +85,80 @@ spec:
                 for job in list(cache.keys()):
                     njob = self.normalize(job)
                     self.normalized_cache[njob] = cache[job]
-        print("\nLoaded cached results.")
+        print("%s: Loaded cached results." % self.cluster)
+        if self.update_cache:
+            print("%s: Updating cache with new results." % self.cluster)
+
 
     def cache_lookup(self, job):
         if self.update_cache:
             return None
 
-        if job in cache:
-            return cache[job]
+        if job in self.cache:
+            return self.cache[job]
         njob = self.normalize(job)
         if njob in self.normalized_cache:
             return self.normalized_cache[njob]
 
     def cache_store(self, job, result):
+        self.cache[job] = result
         njob = self.normalize(job)
-        cache[job] = result
         self.normalized_cache[njob] = result
         with open(self.cache_file, 'wb') as f:
-            pickle.dump(cache, f)
+            pickle.dump(self.cache, f)
 
+
+    def log(self, job, result):
+        with self.lock:
+            print('')
+            print(self.cluster)
+            print(job)
+            print(result)
 
     def kubectl_apply(self, job, silent=True):
-        if not silent:
-            print('')
-            print(job)
 
         result = self.cache_lookup(job)
         if result:
-            print(result)
+            if not silent:
+                self.log(job, result)
             return
 
 
         if self.runtime_class:
-            runtime_class = 'runtimeClassName: ' + runtime_class
+            runtime_class = 'runtimeClassName: ' + self.runtime_class
         else:
             runtime_class = ''
 
-        jobtext = template % (runtime_class, job)
-        jobfile = 'job.yaml'
+        jobtext = self.template % (runtime_class, job)
+        jobfile = os.path.join(self.folder, 'job.yaml')
         with open(jobfile, 'w') as f:
             f.write(jobtext)
 
+        subprocess.run(['kubectl', '--context='+ self.cluster,
+                        'delete', '-f', jobfile], capture_output=True)
+
         res = subprocess.run(['kubectl', '--context='+ self.cluster,
                               'apply', '--overwrite=true', '-f', jobfile], capture_output=True)
+
         if res.returncode:
+            print(res.stdout.decode('utf-8'))
             os._exit(res.returncode)
 
         try:
             res = subprocess.run(['kubectl', '--context='+ self.cluster,
                                   'wait', '--for=condition=complete',
                                   'jobs.batch/fio-test',
-                                  '--timeout=400s'], capture_output=True)
+                                  '--timeout=600s'], capture_output=True)
 
-            res = subprocess.run(['kubectl', '--context='+ self.cluster,
-                                  'get', 'pods'], capture_output=True)
-            pod = res.stdout.decode('utf-8').strip().split('\n')[-1].split()[0]
+            for i in range(0, 10):
+                try:
+                    res = subprocess.run(['kubectl', '--context='+ self.cluster,
+                                          'get', 'pods'], capture_output=True)
+                    pod = res.stdout.decode('utf-8').strip().split('\n')[-1].split()[0]
+                    break
+                except:
+                    print('Failure')
+                    print(res.stdout.decode('utf-8'))                    
 
             res = subprocess.run(['kubectl', '--context='+ self.cluster, 'logs', pod], capture_output=True)
             logs = res.stdout.decode('utf-8')
@@ -154,15 +172,15 @@ spec:
             if writes:
                 result += '\n   ' + writes[-1].strip()
 
-            self.cache_store(job, result)
+            self.cache_store(job, logs)
             if not silent:
-                print(result)
+                self.log(job, result)
 
         except Exception as e:
             print(e)
             print(traceback.format_exc())
 
-        subprocess.run(['kubectl', '--context='+ args['cluster'],'delete', '-f', jobfile], capture_output=True)
+        subprocess.run(['kubectl', '--context='+ self.cluster, 'delete', '-f', jobfile], capture_output=True)
 
     def default_options(self):
         options = [
@@ -172,7 +190,7 @@ spec:
             ('readwrite', 'randread', 'randwrite', 'randrw'),
             ('direct', '1'),
             ('bs', '4k'),
-            ('size', '1G'),
+            ('size', '8G'),
             ('numjobs', '1', '2', '4'),
             ('runtime', 90),
             ('iodepth', 16)
@@ -183,18 +201,12 @@ spec:
         if not options:
             options = self.default_options()
 
-        res = subprocess.run(['az', 'aks', 'get-credentials', '--overwrite-existing',
-                              '--resource-group', self.resource_group,
-                              '--subscription', self.subscription,
-                              '--name', self.cluster])
-        if res.returncode:
-            os._exit(res.returncode)
-
+        self.load_cache()
         jobs = self.gen_jobs(options, 'fio')
         for j in jobs:
             self.kubectl_apply(j, silent)
 
-            
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='AKS fio benchmark')
     parser.add_argument('--subscription', '-s', type=str, required=True)

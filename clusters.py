@@ -8,15 +8,9 @@ import threading
 
 import nodecmd
 
-parser = argparse.ArgumentParser(description='Create AKS fio benchmark clusters')
-parser.add_argument('action', choices=('create', 'delete', 'kata-cache-disable', 'kata-cache-enable'))
-parser.add_argument('--subscription', '-s', type=str, required=True)
-parser.add_argument('--resource-group', '-rg', type=str, required=True)
-parser.add_argument('--location', '-l', type=str, default='CentralUS')
+lock = threading.Lock()
 
-args = parser.parse_args()
-
-def create_cluster(name, vm_size, enable_kata):
+def create_cluster(name, vm_size, enable_kata, args):
     res = subprocess.run(['az', 'aks', 'create',
                           '--resource-group', args.resource_group,
                           '--name', name,
@@ -29,13 +23,14 @@ def create_cluster(name, vm_size, enable_kata):
     if res.returncode:
         os._exit(res.returncode)
 
-    res = subprocess.run(['az', 'aks', 'get-credentials',
-                          '--resource-group', args.resource_group,
-                          '--name', name,
-                          '--subscription', args.subscription,
-                          '--overwrite-existing'])
-    
-        
+    with lock:
+        res = subprocess.run(['az', 'aks', 'get-credentials',
+                              '--resource-group', args.resource_group,
+                              '--name', name,
+                              '--subscription', args.subscription,
+                              '--overwrite-existing'])
+
+
     if enable_kata:
         url_common = 'https://raw.githubusercontent.com/kata-containers/kata-containers/'
         url_common += 'main/tools/packaging/kata-deploy/'
@@ -64,7 +59,7 @@ def create_cluster(name, vm_size, enable_kata):
             os._exit(res.returncode)
 
 
-def delete_cluster(name):
+def delete_cluster(name, args):
     res = subprocess.run(['az', 'aks', 'delete', '-y',
                           '--resource-group', args.resource_group,
                           '--name', name,
@@ -72,13 +67,29 @@ def delete_cluster(name):
     if res.returncode:
         os._exit(res.returncode)
 
-def change_cache(name, enable):
+def _set_virtio_fs_buffering(name, enable):
     cache_value = "auto" if enable else "none"
     nodecmd.execute_command(
         name, None, 'sed',
         '-i', 's/virtio_fs_cache\s\+=\s\+".*"/virtio_fs_cache = "%s"/' % cache_value,
         '/opt/kata/share/defaults/kata-containers/configuration-qemu.toml'
     )
+    
+    # Replace existing direct option    
+    nodecmd.execute_command(
+        name, None, 'sed',
+        '-i', 's/"-o"\s*,\s*"\(no_\)\{0,1\}allow_direct_io"\s*,\{0,1\}//g',
+        '/opt/kata/share/defaults/kata-containers/configuration-qemu.toml'
+    )
+
+    # Set direct option correctly
+    direct_value = "allow_direct_io" if not enable else "no_allow_direct_io"
+    nodecmd.execute_command(
+        name, None, 'sed',
+        '-i', 's/virtio_fs_extra_args\s*=\s*\[/virtio_fs_extra_args = [ "-o", "%s", /g' % direct_value,
+        '/opt/kata/share/defaults/kata-containers/configuration-qemu.toml'
+    )
+
     
 clusters = [
     ('aks-benchmark-containerd-2', 'Standard_D2s_v3', False),
@@ -89,30 +100,50 @@ clusters = [
     ('aks-benchmark-kata-8', 'Standard_D8s_v3', True),
 ]
 
-threads = []
 
-if args.action == 'create':
+def join_all(threads):
+    for t in threads:
+        t.join()
+
+
+def create_clusters(args):
+    threads = []
     for c in clusters:
-        t = threading.Thread(target=create_cluster, args=c)
+        t = threading.Thread(target=create_cluster, args=(*c, args))
         threads.append(t)
         t.start()
-elif args.action == 'delete':
+    join_all(threads)
+
+def delete_clusters(args):
+    threads = []
     for name,_, _ in clusters:
-        t = threading.Thread(target=delete_cluster, args=(name,))
+        t = threading.Thread(target=delete_cluster, args=(name, args))
         threads.append(t)
         t.start()
-elif args.action == 'kata-cache-disable':
+    join_all(threads)
+
+def set_virtio_fs_buffering(enable):
     for name, _, k in clusters:
         if k:
-            change_cache(name, False)
-elif args.action == 'kata-cache-enable':
-    for name, _, k in clusters:
-        if k:
-            change_cache(name, True)            
-else:
-    print("Unkown action %s" % args.action)
-    sys.exit(1)
-        
-# Wait for all threads to complete
-for t in threads:
-    t.join()
+            _set_virtio_fs_buffering(name, enable)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Create AKS fio benchmark clusters')
+    parser.add_argument('action', choices=('create', 'delete', 'virtio-fs-cache-none', 'virtio-fs-cache-auto'))
+    parser.add_argument('--subscription', '-s', type=str, required=True)
+    parser.add_argument('--resource-group', '-rg', type=str, required=True)
+    parser.add_argument('--location', '-l', type=str, default='CentralUS')
+
+    args = parser.parse_args()
+
+    if args.action == 'create':
+        create_clusters(args)
+    elif args.action == 'delete':
+        delete_clusters(args)
+    elif args.action == 'virtio-fs-cache-auto':
+        change_virito_fs_caches(True)
+    elif args.action == 'virtio-fs-cache-none':
+        change_virtio_fs_caches(False)
+    else:
+        print("Unkown action %s" % args.action)
+        sys.exit(1)

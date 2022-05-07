@@ -18,9 +18,20 @@ def execute_command(cluster, node, cmd, *args):
         node = output.split('\n')[1].split()[0]
 
     res = subprocess.run(['kubectl', 'debug', 'node/' + node,
-                          '-it', '--image=mcr.microsoft.com/dotnet/runtime-deps:6.0',
+                          '--context', cluster,
+                          '-it', '--image=docker.io/library/alpine',
                           '--', 'chroot', '/host', cmd, *args])
-    
+
+    if not res.returncode:
+        res = subprocess.run(['kubectl', 'get', 'pods', '--context', cluster],
+                             capture_output=True)
+        if not res.returncode:
+            lines = res.stdout.decode('utf-8').split('\n')
+            for l in lines:
+                words = l.split()
+                if words and words[0].startswith('node-debugger'):
+                    subprocess.run(['kubectl', 'delete', 'pod', words[0],
+                                    '--context', cluster]) 
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Execute command on AKS node')
