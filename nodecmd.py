@@ -1,5 +1,4 @@
 #!/bin/python3
-
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License
 
@@ -34,7 +33,7 @@ def execute_command(cluster, node, cmd, *args):
                 words = l.split()
                 if words and words[0].startswith('node-debugger'):
                     subprocess.run(['kubectl', 'delete', 'pod', words[0],
-                                    '--context', cluster]) 
+                                    '--context', cluster])
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description='Execute command on AKS node')
@@ -44,4 +43,3 @@ if __name__=="__main__":
 
     args, unknown = parser.parse_known_args()
     execute_command(args.cluster, args.node, args.command, *unknown)
-

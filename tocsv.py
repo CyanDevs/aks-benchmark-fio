@@ -1,7 +1,6 @@
 #!/bin/python3
-
 # Copyright (c) Open Enclave SDK contributors.
-# Licensed under the MIT Licen
+# Licensed under the MIT License
 
 import os
 import math
@@ -126,4 +125,3 @@ df = df.drop_duplicates()
 print(df)
 
 df.to_csv('data.csv')
-

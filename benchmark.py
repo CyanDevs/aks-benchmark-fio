@@ -1,5 +1,4 @@
 #!/bin/python3
-
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License
 
@@ -158,7 +157,7 @@ spec:
                     break
                 except:
                     print('Failure')
-                    print(res.stdout.decode('utf-8'))                    
+                    print(res.stdout.decode('utf-8'))
 
             res = subprocess.run(['kubectl', '--context='+ self.cluster, 'logs', pod], capture_output=True)
             logs = res.stdout.decode('utf-8')

@@ -1,5 +1,4 @@
 #!/bin/python3
-
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License
 
@@ -77,8 +76,8 @@ def _set_virtio_fs_buffering(name, enable):
         '-i', 's/virtio_fs_cache\s\+=\s\+".*"/virtio_fs_cache = "%s"/' % cache_value,
         '/opt/kata/share/defaults/kata-containers/configuration-qemu.toml'
     )
-    
-    # Replace existing direct option    
+
+    # Replace existing direct option
     nodecmd.execute_command(
         name, None, 'sed',
         '-i', 's/"-o"\s*,\s*"\(no_\)\{0,1\}allow_direct_io"\s*,\{0,1\}//g',
@@ -93,7 +92,7 @@ def _set_virtio_fs_buffering(name, enable):
         '/opt/kata/share/defaults/kata-containers/configuration-qemu.toml'
     )
 
-    
+
 clusters = [
     ('runc-2', 'Standard_D2s_v3', False),
     ('runc-4', 'Standard_D4s_v3', False),
