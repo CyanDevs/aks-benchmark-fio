@@ -92,12 +92,12 @@ def _set_virtio_fs_buffering(name, enable):
 
     
 clusters = [
-    ('aks-benchmark-containerd-2', 'Standard_D2s_v3', False),
-    ('aks-benchmark-containerd-4', 'Standard_D4s_v3', False),
-    ('aks-benchmark-containerd-8', 'Standard_D8s_v3', False),
-    ('aks-benchmark-kata-2', 'Standard_D2s_v3', True),
-    ('aks-benchmark-kata-4', 'Standard_D4s_v3', True),
-    ('aks-benchmark-kata-8', 'Standard_D8s_v3', True),
+    ('runc-2', 'Standard_D2s_v3', False),
+    ('runc-4', 'Standard_D4s_v3', False),
+    ('runc-8', 'Standard_D8s_v3', False),
+    ('kata-qemu-2', 'Standard_D2s_v3', True),
+    ('kata-qemu-4', 'Standard_D4s_v3', True),
+    ('kata-qemu-8', 'Standard_D8s_v3', True),
 ]
 
 
