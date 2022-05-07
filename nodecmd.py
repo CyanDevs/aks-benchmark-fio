@@ -1,5 +1,8 @@
 #!/bin/python3
 
+# Copyright (c) Open Enclave SDK contributors.
+# Licensed under the MIT License
+
 import argparse
 import os
 import subprocess
