@@ -124,4 +124,4 @@ df = df.drop_duplicates()
 
 print(df)
 
-df.to_csv('data.csv')
+df.to_csv('data.csv', index=False)
