@@ -94,12 +94,17 @@ def _set_virtio_fs_buffering(name, enable):
 
 
 clusters = [
-    ('runc-2', 'Standard_D2s_v3', False),
-    ('runc-4', 'Standard_D4s_v3', False),
-    ('runc-8', 'Standard_D8s_v3', False),
-    ('kata-qemu-2', 'Standard_D2s_v3', True),
-    ('kata-qemu-4', 'Standard_D4s_v3', True),
-    ('kata-qemu-8', 'Standard_D8s_v3', True),
+    ('cluster-2-1', 'Standard_D2s_v4'),
+    ('cluster-2-2', 'Standard_D2s_v4'),
+    ('cluster-2-3', 'Standard_D2s_v4'),
+
+    ('cluster-4-1', 'Standard_D4s_v4'),
+    ('cluster-4-2', 'Standard_D4s_v4'),
+    ('cluster-4-3', 'Standard_D4s_v4'),
+
+    ('cluster-8-1', 'Standard_D8s_v4'),
+    ('cluster-8-2', 'Standard_D8s_v4'),
+    ('cluster-8-3', 'Standard_D8s_v4'),
 ]
 
 
@@ -110,28 +115,31 @@ def join_all(threads):
 
 def create_clusters(args):
     threads = []
+    enable_kata = True
     for c in clusters:
-        t = threading.Thread(target=create_cluster, args=(*c, args))
+        t = threading.Thread(target=create_cluster, args=(*c, enable_kata, args))
         threads.append(t)
         t.start()
     join_all(threads)
 
 def delete_clusters(args):
     threads = []
-    for name,_, _ in clusters:
+    for name,_ in clusters:
         t = threading.Thread(target=delete_cluster, args=(name, args))
         threads.append(t)
         t.start()
     join_all(threads)
 
 def set_virtio_fs_buffering(enable):
-    for name, _, k in clusters:
-        if k:
-            _set_virtio_fs_buffering(name, enable)
+    for name, _ in clusters:
+        _set_virtio_fs_buffering(name, enable)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Create AKS fio benchmark clusters')
-    parser.add_argument('action', choices=('create', 'delete', 'virtio-fs-cache-none', 'virtio-fs-cache-auto'))
+    parser.add_argument('action', choices=('create',
+                                           'delete',
+                                           'set-virtio-fs-direct',
+                                           'set-vritio-fs-buffered'))
     parser.add_argument('--subscription', '-s', type=str, required=True)
     parser.add_argument('--resource-group', '-rg', type=str, required=True)
     parser.add_argument('--location', '-l', type=str, default='CentralUS')
@@ -142,10 +150,10 @@ if __name__ == "__main__":
         create_clusters(args)
     elif args.action == 'delete':
         delete_clusters(args)
-    elif args.action == 'virtio-fs-cache-auto':
-        change_virito_fs_caches(True)
-    elif args.action == 'virtio-fs-cache-none':
-        change_virtio_fs_caches(False)
+    elif args.action == 'set-virtio-fs-direct':
+        set_virtio_fs_buffering(False)
+    elif args.action == 'set-virtio-fs-buffered':
+        set_virtio_fs_buffering(True)
     else:
         print("Unkown action %s" % args.action)
         sys.exit(1)

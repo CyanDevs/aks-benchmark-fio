@@ -21,8 +21,6 @@ args = parser.parse_args()
 if args.manage_clusters:
     clusters.create_clusters(args)
 
-clusters.set_virtio_fs_buffering(False)
-
 options = [
     ('name', 'test'),
     ('filename', 'test'),
@@ -36,25 +34,55 @@ options = [
     ('group_reporting',),
     ('bs', '1k', '2k', '4k', '8k', '16k', '32k', '64k', '128k', '256k'),
     ('numjobs', '1', '2', '4'),
-    ('iodepth', 32, 8, 4, 2),
 ]
 
-threads = []
-for cluster in clusters.clusters:
-    name = cluster[0][:]
-    folder = os.path.join('data', name)
+def run_benchmark(cluster_name, node_type, options):
+    folder = os.path.join('data', cluster_name, node_type, 'runc')
     os.makedirs(folder, exist_ok=True)
-    runtime_class = 'kata-qemu' if cluster[2] else None
-    bench = benchmark.Benchmark(folder, cluster[0], args.resource_group,
+
+    runtime_class = ''
+    bench = benchmark.Benchmark(folder, cluster_name, args.resource_group,
                                 args.subscription, runtime_class,
                                 False)
-    t = threading.Thread(target=bench.run, args=(options, False))
-    threads.append(t)
-    t.start()
+    bench.run(options, False)
 
-for t in threads:
-    t.join()
+    folder = os.path.join('data', cluster_name, node_type, 'kata-qemu')
+    os.makedirs(folder, exist_ok=True)
+    runtime_class = 'kata-qemu'
+    bench = benchmark.Benchmark(folder, cluster_name, args.resource_group,
+                                args.subscription, runtime_class,
+                                False)
+    bench.run(options, False)
+    
+def run_benchmarks():
+    #clusters.set_virtio_fs_buffering(False)
 
+    iodepths = [
+        ('iodepth', 1, 8, 64),
+        ('iodepth', 2, 16, 128),
+        ('iodepth', 4, 32, 256),
+    ]
+
+    idx = 0
+    
+    threads = []
+    for c in clusters.clusters:
+        opts = options.copy()
+        opts.append(iodepths[idx])
+        t = threading.Thread(target=run_benchmark, args=(*c, opts))
+        threads.append(t)
+
+        idx += 1
+        if idx >= len(iodepths):
+            idx = 0
+
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+run_benchmarks()
+    
 # Delete clusters
 if args.manage_clusters:
     clusters.delete_clusters(args)

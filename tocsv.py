@@ -10,45 +10,9 @@ import pickle
 import re
 import sys
 
-# Map folder names to tag and node type
-mappings = {
-    # Runc
-    'containerd-2' : ('runc', 'Standard_D2s_v3'),
-    'containerd-4' : ('runc', 'Standard_D4s_v3'),
-    'containerd-8' : ('runc', 'Standard_D8s_v3'),
-    'runc-2' : ('runc', 'Standard_D2s_v3'),
-    'runc-4' : ('runc', 'Standard_D4s_v3'),
-    'runc-8' : ('runc', 'Standard_D8s_v3'),
-
-    # Kata qemu
-    'kata-2' : ('kata-qemu', 'Standard_D2s_v3'),
-    'kata-4' : ('kata-qemu', 'Standard_D4s_v3'),
-    'kata-8' : ('kata-qemu', 'Standard_D8s_v3'),
-    'kata-qemu-2' : ('kata-qemu', 'Standard_D2s_v3'),
-    'kata-qemu-4' : ('kata-qemu', 'Standard_D4s_v3'),
-    'kata-qemu-8' : ('kata-qemu', 'Standard_D8s_v3'),
-
-     # Kata clh
-    'kata-clh-2' : ('kata-clh', 'Standard_D2s_v3'),
-    'kata-clh-4' : ('kata-clh', 'Standard_D4s_v3'),
-    'kata-clh-8' : ('kata-clh', 'Standard_D8s_v3'),
-}
-
-# Read all results caches
+# Load all caches
 caches = [ (p.parent, pickle.loads(p.read_bytes()))
            for p in sorted(pathlib.Path('.').rglob('cache.pickle'))]
-
-def get_formatted_folder_name(path):
-    name = path.parts[-1]
-    name = name.replace('aks-benchmark-', '')
-    return name
-
-# Ensure that there is a mapping for each folder
-for (path, cache) in caches:
-    name = get_formatted_folder_name(path)
-    if not name in mappings:
-        print('Edit script to provide mapping for %s' % name)
-        sys.exit(1)
 
 read_re = re.compile(r'read: IOPS=(\d+\.?\d*)(k?), BW=(\d+\.?\d*)(MiB/s|KiB/s|B/s)')
 write_re = re.compile(r'write: IOPS=(\d+\.?\d*)(k?), BW=(\d+\.?\d*)(MiB/s|KiB/s|B/s)')
@@ -105,10 +69,10 @@ def add_job_to_table(job, output, common_fields, table):
 
 table = []
 for (path, cache) in caches:
-    name = get_formatted_folder_name(path)
-    m = mappings[name]
-
-    common_fields = { 'ctr-runtime' : m[0], 'node' : m[1] }
+    ctr_runtime = path.parts[-1]
+    node = path.parts[-2]
+    
+    common_fields = { 'ctr-runtime' : ctr_runtime, 'node' : node }
     for job, output in cache.items():
         add_job_to_table(job, output, common_fields, table)
 
@@ -121,7 +85,7 @@ pd.set_option('display.colheader_justify', 'center')
 pd.set_option('display.precision', 3)
 
 df = df.drop_duplicates()
-
+df = df.sort_values(['ctr-runtime', 'node', 'readwrite', 'op', 'iodepth', 'bs', 'numjobs'])
 print(df)
 
 df.to_csv('data.csv', index=False)

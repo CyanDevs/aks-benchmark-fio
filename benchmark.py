@@ -107,12 +107,22 @@ spec:
             pickle.dump(self.cache, f)
 
 
-    def log(self, job, result):
+    def log(self, job, logs):
+        lines = logs.split('\n')
+        key_lines = []
+        prefixes = ['read:', 'write:', 'READ:', 'WRITE:']
+        for l in lines:
+            lt = l.strip()
+            for p in prefixes:
+                if lt.startswith(p):
+                    key_lines.append(l)
+                    break
+
         with self.lock:
             print('')
             print(self.cluster)
             print(job)
-            print(result)
+            print('\n'.join(key_lines))
 
     def kubectl_apply(self, job, silent=True):
 
@@ -162,18 +172,9 @@ spec:
             res = subprocess.run(['kubectl', '--context='+ self.cluster, 'logs', pod], capture_output=True)
             logs = res.stdout.decode('utf-8')
 
-            reads = re.findall('\s+READ.+', logs)
-            result = ''
-            if reads:
-                result += '   ' + reads[-1].strip()
-
-            writes = re.findall('\s+WRITE.+', logs)
-            if writes:
-                result += '\n   ' + writes[-1].strip()
-
             self.cache_store(job, logs)
             if not silent:
-                self.log(job, result)
+                self.log(job, logs)
 
         except Exception as e:
             print(e)
