@@ -38,7 +38,7 @@ ops          = list(df['op'].unique())
 metrics      = ['BW (MB/s)', 'IOPS']
 
 palette = 'pastel'
-fsize  = (9, 11)
+fsize  = (11, 13)
 aspect = fsize[0]*1.0/fsize[1]
 
 figures_dir = 'figures'
@@ -70,6 +70,7 @@ def gen_cat_plots(df, readwrite, op, metric):
     if len(df) == 0:
         return
 
+    print('Randering catplot for %s %s' % (op, metric))
     op_name = make_descriptive(readwrite, op)
     title = '%s %s' % (op_name, metric_names[metric])
 
@@ -77,7 +78,7 @@ def gen_cat_plots(df, readwrite, op, metric):
     hue = hue_cols[0] if len(hue_cols) == 1 else df[hue_cols].apply(tuple, axis=1)
     col = 'numjobs'
 
-    sns.set_theme(style="whitegrid", font_scale=1.5, rc={'figure.figsize':fsize})
+    sns.set_theme(style="whitegrid", font_scale=2, rc={'figure.figsize':fsize})
 
     g = sns.catplot(
         showfliers = False, # Outliers will be drawn via strip plot
@@ -87,14 +88,15 @@ def gen_cat_plots(df, readwrite, op, metric):
         hue = hue,
         y = metric,
         dodge = True,
-        whis=[0, 100],
+#        whis=[0, 100],
         kind='box',
 #        k_depth='full',
         col = 'numjobs',
         aspect = aspect,
         height = fsize[1],
         sharey = True,
-        hue_order=ctr_runtimes
+        hue_order=ctr_runtimes,
+        legend_out = False        
     )
 
     ax = g.map_dataframe(
@@ -107,7 +109,7 @@ def gen_cat_plots(df, readwrite, op, metric):
         y = metric,
         dodge = True,
         ec='k',
-        hue_order=ctr_runtimes
+        hue_order=ctr_runtimes,
     )
 
     ax.set_xticklabels(rotation=45, horizontalalignment='right')
@@ -183,58 +185,3 @@ for readwrite in readwrites:
         for metric in metrics:
             gen_box_plots(df, readwrite, op, metric)
             gen_cat_plots(df, readwrite, op, metric)
-
-# def gen_cat_plots(df, readwrite, op, metric):
-#     # Select records with given filters and make a copy.
-#     df = df[(df['readwrite'] == readwrite) & (df['op'] == op)].copy()
-
-#     if len(df) == 0:
-#         return
-
-#     op_name = make_descriptive(readwrite, op)
-#     title = '%s %s' % (op_name, metric_names[metric])
-
-#     hue_cols = ['ctr-runtime']
-#     hue = hue_cols[0] if len(hue_cols) == 1 else df[hue_cols].apply(tuple, axis=1)
-#     col = 'numjobs'
-
-#     sns.set_theme(style="whitegrid", font_scale=1.5, rc={'figure.figsize':fsize})
-
-#     g = sns.catplot(
-#         showfliers = False, # Outliers will be drawn via strip plot
-#         palette = palette,
-#         data = df,
-#         x = 'bs',
-#         hue = hue,
-#         y = metric,
-#         dodge = True,
-# #        whis=[0, 100],
-#         kind='violin',
-# #        k_depth='full',
-#         col = col,
-#         aspect = aspect,
-#         height = fsize[1],
-#         sharey = True,
-#         hue_order=ctr_runtimes
-#     )
-
-#     ax = g.map_dataframe(
-#         sns.swarmplot,
-# #        jitter = True, # Make it easy to see different points
-#         size = 4,
-#         data=df,
-#         hue=hue,
-#         x = 'bs',
-#         y = metric,
-#         dodge = True,
-#         ec='k',
-#         hue_order=ctr_runtimes
-#     )
-
-#     ax.set_xticklabels(rotation=45, horizontalalignment='right')
-#     g.fig.suptitle(title, y=1.05)
-#     filename = (op_name + metric + 'Cat').replace(' ', '').replace('(MB/s)', '') + '.png'
-#     #g.fig.savefig(os.path.join(figures_dir, filename), bbox_inches='tight')
-#     plt.show()
-
-# gen_cat_plots(df, 'randread', 'read', metrics[0])
