@@ -5,6 +5,6 @@ Analysis of IO performance in AKS using fio benchmark tool
 
 ## RandRead
 
-! [RandReadBW] (figures/RandReadBW.png) 
-! [RandReadBWKDE] (figures/RandReadBWKDE.png) 
-! [RandReadBWCat] (figures/RandReadBWCat.png) 
+![RandReadBW](figures/RandReadBW.png) 
+![RandReadBWKDE](figures/RandReadBWKDE.png) 
+![RandReadBWCat](figures/RandReadBWCat.png) 
