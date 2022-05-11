@@ -70,7 +70,7 @@ def gen_cat_plots(df, readwrite, op, metric):
     if len(df) == 0:
         return
 
-    print('Randering catplot for %s %s' % (op, metric))
+    print('Rendering catplot for %s %s' % (op, metric))
     op_name = make_descriptive(readwrite, op)
     title = '%s %s' % (op_name, metric_names[metric])
 
@@ -96,7 +96,7 @@ def gen_cat_plots(df, readwrite, op, metric):
         height = fsize[1],
         sharey = True,
         hue_order=ctr_runtimes,
-        legend_out = False        
+        legend_out = False
     )
 
     ax = g.map_dataframe(
@@ -117,7 +117,7 @@ def gen_cat_plots(df, readwrite, op, metric):
     filename = (op_name + metric + 'Cat').replace(' ', '').replace('(MB/s)', '') + '.png'
     g.fig.savefig(os.path.join(figures_dir, filename), bbox_inches='tight')
     plt.close()
-    
+
 # Generate box and strip plots
 def gen_box_plots(df, readwrite, op, metric):
 
@@ -180,8 +180,40 @@ def gen_box_plots(df, readwrite, op, metric):
     ax.get_figure().savefig(os.path.join(figures_dir, filename))
     plt.close()
 
+def gen_kde_plots(df, readwrite, op, metric):
+    # Select records with given filters and make a copy.
+    df = df[(df['readwrite'] == readwrite) & (df['op'] == op)].copy()
+
+    if len(df) == 0:
+        return
+
+    op_name = make_descriptive(readwrite, op)
+    title = '%s %s' % (op_name, metric_names[metric])
+
+    hue_cols = ['ctr-runtime']
+    hue = hue_cols[0] if len(hue_cols) == 1 else df[hue_cols].apply(tuple, axis=1)
+    col = 'numjobs'
+
+    sns.set_theme(style="whitegrid", font_scale=2, rc={'figure.figsize':fsize})
+
+    ax =sns.kdeplot(
+        data=df,
+        hue=hue,
+        x=metric,
+        alpha=0.4,
+        fill=True,
+        cut=0,
+        hue_order=ctr_runtimes)
+
+    ax.get_figure().suptitle(title, y=1.05)
+    filename = (op_name + metric + 'KDE').replace(' ', '').replace('(MB/s)', '') + '.png'
+    ax.get_figure().savefig(os.path.join(figures_dir, filename), bbox_inches='tight')
+    plt.close()
+
+
 for readwrite in readwrites:
     for op in ops:
         for metric in metrics:
             gen_box_plots(df, readwrite, op, metric)
             gen_cat_plots(df, readwrite, op, metric)
+            gen_kde_plots(df, readwrite, op, metric)
