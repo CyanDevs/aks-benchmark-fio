@@ -55,7 +55,7 @@ def run_benchmark(cluster_name, node_type, options):
     bench.run(options, False)
     
 def run_benchmarks():
-    #clusters.set_virtio_fs_buffering(False)
+    clusters.set_virtio_fs_buffering(False)
 
     iodepths = [
         ('iodepth', 1, 8, 64),
