@@ -1,6 +1,17 @@
 # aks-benchmark-fio
 Analysis of IO performance in AKS using fio benchmark tool
 
+## Prerequisites
+
+This repository has been tested on Ubuntu 20.04. There shouldn't be much issues with Ubuntu 18.04.
+It has not been tested on Windows.
+
+1. Install python3.
+2. Install modules necessary for data visualization: `pip3 install seaborn pandas matplotlib`
+3. Install Azure CLI (`az`) following the instructions at [Prerequisites](https://docs.microsoft.com/en-us/azure/aks/learn/quick-kubernetes-deploy-cli#prerequisites)
+4. Login using `az login`
+5. Install kubectl locally using the az aks install-cli command: `az aks install-cli`
+
 ## Running the benchmarks
 
 1. Clone the repository using git and cd to it.
