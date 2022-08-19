@@ -15,6 +15,46 @@ class Benchmark:
     lock = threading.Lock()
 
     template = """
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dbench-%(job)s
+spec:
+  storageClassName: local-storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Ti
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: azure-disk-%(job)s
+spec:
+  accessModes:
+  - ReadWriteOnce
+  # storageClassName: default
+  storageClassName: managed-csi-premium
+  resources:
+    requests:
+      storage: 1Ti
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: azure-file-%(job)s
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefile
+  # azurefile-csi-premium
+  resources:
+    requests:
+      storage: 1Ti
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -25,15 +65,56 @@ spec:
       labels:
         app: fio-test
     spec:
-      %s
+      %(runtime_class)s
       containers:
-      - name: fio-test
-        image: sagoel/fio:3.16
-        command: [
-          "sh",
-          "-c",
-          "nproc; cmd='%s'; echo $cmd; $cmd"
-          ]
+        - name: fio-test
+          image: sagoel/fio:3.16
+          command: [
+            "sh",
+            "-c",
+            "nproc; cmd='%(job)s'; echo $cmd; $cmd"
+            ]
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: DBENCH_MOUNTPOINT
+              value: /s/mytmpfs
+            - name: FIO_SIZE
+              value: 10G
+            - name: FIO_DIRECT
+              value: "1"
+            - name: FIO_RUNTIME
+              value: 60s
+            - name: DBENCH_QUICK
+              value: ""
+            - name: FIO_OFFSET_INCREMENT
+              value: 500Mi
+          volumeMounts:
+            - mountPath: /s/azure-disk
+              name: azure-disk
+            - mountPath: /s/azure-file
+              name: azure-file
+            - mountPath: /s/mnt
+              name: host-drive
+            - mountPath: /s/mytmpfs
+              name: host-mytmpfs
+            - mountPath: /s/dbench
+              name: dbench
+      volumes:
+        - name: azure-disk
+          persistentVolumeClaim:
+            claimName: azure-disk-%(job)s
+        - name: azure-file
+          persistentVolumeClaim:
+            claimName: azure-file-%(job)s
+        - name: host-drive
+          hostPath:
+            path: /mnt
+        - name: host-mytmpfs
+          hostPath:
+            path: /mytmpfs
+        - name: dbench
+          persistentVolumeClaim:
+            claimName: dbench-%(job)s
       restartPolicy: "Never"
   backoffLimit: 0
 """
@@ -138,7 +219,7 @@ spec:
         else:
             runtime_class = ''
 
-        jobtext = self.template % (runtime_class, job)
+        jobtext = self.template % {'runtime_class': runtime_class, 'job': job}
         jobfile = os.path.join(self.folder, 'job.yaml')
         with open(jobfile, 'w') as f:
             f.write(jobtext)
