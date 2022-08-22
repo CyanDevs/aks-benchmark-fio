@@ -26,7 +26,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Ti
+      storage: 100Gi
 
 ---
 apiVersion: v1
@@ -40,7 +40,7 @@ spec:
   storageClassName: managed-csi-premium
   resources:
     requests:
-      storage: 1Ti
+      storage: 100Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -53,7 +53,7 @@ spec:
   # azurefile-csi-premium
   resources:
     requests:
-      storage: 1Ti
+      storage: 100Gi
 ---
 apiVersion: batch/v1
 kind: Job
