@@ -59,7 +59,17 @@ def create_cluster(name, vm_size, enable_kata, args):
 
         if res.returncode:
             os._exit(res.returncode)
+    
+    # Label NVME nodes
+    if 'Standard_L' in vm_size:
+        node = subprocess.run(['kubectl', 'get', 'nodes', '--output=name'])
 
+        if node.returncode:
+            os._exit(node.returncode)
+        
+        res = subprocess.run(['kubectl', 'label', 'nodes', node.stdout.decode('utf-8').strip(), 'kubernetes.azure.com/aks-local-ssd=true'])
+        if res.returncode:
+            os._exit(res.returncode)
 
 def delete_cluster(name, args):
     res = subprocess.run(['az', 'aks', 'delete', '-y',
@@ -94,17 +104,21 @@ def _set_virtio_fs_buffering(name, enable):
 
 
 clusters = [
-    ('cluster-2-1', 'Standard_D2s_v4'),
-    ('cluster-2-2', 'Standard_D2s_v4'),
-    ('cluster-2-3', 'Standard_D2s_v4'),
+    # ('cluster-2-1', 'Standard_D2s_v4'),
+    # ('cluster-2-2', 'Standard_D2s_v4'),
+    # ('cluster-2-3', 'Standard_D2s_v4'),
 
-    ('cluster-4-1', 'Standard_D4s_v4'),
-    ('cluster-4-2', 'Standard_D4s_v4'),
-    ('cluster-4-3', 'Standard_D4s_v4'),
+    # ('cluster-4-1', 'Standard_D4s_v4'),
+    # ('cluster-4-2', 'Standard_D4s_v4'),
+    # ('cluster-4-3', 'Standard_D4s_v4'),
 
-    ('cluster-8-1', 'Standard_D8s_v4'),
-    ('cluster-8-2', 'Standard_D8s_v4'),
-    ('cluster-8-3', 'Standard_D8s_v4'),
+    # ('cluster-8-1', 'Standard_D8s_v4'),
+    # ('cluster-8-2', 'Standard_D8s_v4'),
+    # ('cluster-8-3', 'Standard_D8s_v4'),
+
+    ('cluster-L8-1', 'Standard_L8s_v2'),
+    ('cluster-L8-2', 'Standard_L8s_v2'),
+    ('cluster-L8-3', 'Standard_L8s_v2'),
 ]
 
 
