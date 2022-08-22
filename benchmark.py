@@ -68,7 +68,7 @@ spec:
       %(runtime_class)s
       containers:
         - name: fio-test
-          image: sagoel/fio:3.16
+          image: fangluguopub.azurecr.io/ubuntu-debug
           command: [
             "sh",
             "-c",
