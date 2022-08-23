@@ -207,11 +207,7 @@ spec:
       containers:
         - name: fio-test
           image: fangluguopub.azurecr.io/ubuntu-debug
-          command: [
-            "sh",
-            "-c",
-            "nproc; cmd='%(job)s'; echo $cmd; $cmd"
-            ]
+          command: ["/root/docker-entrypoint.sh", "fio”]
           imagePullPolicy: IfNotPresent
           env:
             - name: DBENCH_MOUNTPOINT
