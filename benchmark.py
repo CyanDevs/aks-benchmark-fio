@@ -27,7 +27,6 @@ spec:
   resources:
     requests:
       storage: 100Gi
-
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -207,7 +206,7 @@ spec:
       containers:
         - name: fio-test
           image: fangluguopub.azurecr.io/ubuntu-debug
-          command: ["/root/docker-entrypoint.sh", "fio”]
+          command: ["/docker-entrypoint.sh", "fio"]
           imagePullPolicy: IfNotPresent
           env:
             - name: DBENCH_MOUNTPOINT

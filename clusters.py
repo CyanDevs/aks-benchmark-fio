@@ -116,9 +116,9 @@ clusters = [
     # ('cluster-8-2', 'Standard_D8s_v4'),
     # ('cluster-8-3', 'Standard_D8s_v4'),
 
-    ('cluster-L8-1', 'Standard_L8s_v2'),
-    ('cluster-L8-2', 'Standard_L8s_v2'),
-    ('cluster-L8-3', 'Standard_L8s_v2'),
+    ('cluster-L8-1', 'Standard_L8s_v3'),
+    ('cluster-L8-2', 'Standard_L8s_v3'),
+    ('cluster-L8-3', 'Standard_L8s_v3'),
 ]
 
 
