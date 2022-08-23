@@ -42,17 +42,17 @@ def create_cluster(name, vm_size, enable_kata, args):
         if res.returncode:
             os._exit(res.returncode)
 
-        # res = subprocess.run(['kubectl', 'apply', '--context', name, '-f',
-        #                      url_common + 'kata-deploy/base/kata-deploy-stable.yaml'])
-        # if res.returncode:
-        #     os._exit(res.returncode)
+        res = subprocess.run(['kubectl', 'apply', '--context', name, '-f',
+                             url_common + 'kata-deploy/base/kata-deploy-stable.yaml'])
+        if res.returncode:
+            os._exit(res.returncode)
 
-        # res = subprocess.run(['kubectl', '--context', name, '-n', 'kube-system', 'wait',
-        #                       '--timeout=10m', '--for=condition=Ready',
-        #                       '-l', 'name=kata-deploy', 'pod'])
+        res = subprocess.run(['kubectl', '--context', name, '-n', 'kube-system', 'wait',
+                              '--timeout=10m', '--for=condition=Ready',
+                              '-l', 'name=kata-deploy', 'pod'])
 
-        # if res.returncode:
-        #     os._exit(res.returncode)
+        if res.returncode:
+            os._exit(res.returncode)
 
         res = subprocess.run(['kubectl', 'apply', '--context', name, '-f',
                              url_common + 'runtimeclasses/kata-runtimeClasses.yaml'])
@@ -62,7 +62,7 @@ def create_cluster(name, vm_size, enable_kata, args):
     
     # Label NVME nodes
     if 'Standard_L' in vm_size:
-        node = subprocess.run(['kubectl', 'get', 'nodes', '--output=name'])
+        node = subprocess.run(['kubectl', 'get', 'nodes', '--output=name'], capture_output=True)
 
         if node.returncode:
             os._exit(node.returncode)
