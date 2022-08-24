@@ -8,17 +8,18 @@ import subprocess
 
 def execute_command(cluster, node, cmd, *args):
     if not node:
-        res = subprocess.run(['kubectl', 'get', 'nodes', '--context', cluster],
+        # Get names of nodes in the cluster
+        res = subprocess.run(['kubectl', 'get', 'nodes', '--output=name', '--context', cluster],
                          capture_output=True)
         if res.returncode:
             print(res.stdout)
             os._exit(res.returncode)
 
-        output = res.stdout.decode('utf-8')
+        output = res.stdout.decode('utf-8').splitlines()
 
-        # Fetch the first node.
-        node = output.split('\n')[1].split()[0]
-
+        # Fetch the first node and remove node/ prefix
+        node = output[0].replace('node/', '')
+    print("Executing command on node: f{node} in cluster f{cluster}")
     res = subprocess.run(['kubectl', 'debug', 'node/' + node,
                           '--context', cluster,
                           '-it', '--image=docker.io/library/alpine',
