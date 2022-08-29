@@ -19,7 +19,7 @@ class Benchmark:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: dbench-%(job)s
+  name: dbench-%(id)s
 spec:
   storageClassName: local-storage
   accessModes:
@@ -31,7 +31,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: azure-disk-%(job)s
+  name: azure-disk-%(id)s
 spec:
   accessModes:
   - ReadWriteOnce
@@ -44,7 +44,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: azure-file-%(job)s
+  name: azure-file-%(id)s
 spec:
   accessModes:
     - ReadWriteMany
@@ -235,10 +235,10 @@ spec:
       volumes:
         - name: azure-disk
           persistentVolumeClaim:
-            claimName: azure-disk-%(job)s
+            claimName: azure-disk-%(id)s
         - name: azure-file
           persistentVolumeClaim:
-            claimName: azure-file-%(job)s
+            claimName: azure-file-%(id)s
         - name: host-drive
           hostPath:
             path: /mnt
@@ -247,7 +247,7 @@ spec:
             path: /mytmpfs
         - name: dbench
           persistentVolumeClaim:
-            claimName: dbench-%(job)s
+            claimName: dbench-%(id)s
       restartPolicy: "Never"
   backoffLimit: 0
 """
@@ -352,7 +352,7 @@ spec:
         else:
             runtime_class = ''
 
-        jobtext = self.template % {'runtime_class': runtime_class, 'job': job}
+        jobtext = self.template % {'runtime_class': runtime_class, 'job': job, 'id': self.cluster}
         jobfile = os.path.join(self.folder, 'job.yaml')
         with open(jobfile, 'w') as f:
             f.write(jobtext)
@@ -364,8 +364,10 @@ spec:
                               'apply', '--overwrite=true', '-f', jobfile], capture_output=True)
 
         if res.returncode:
-            print(res.stdout.decode('utf-8'))
+            print(res.stderr.decode('utf-8'))
             os._exit(res.returncode)
+        else:
+          print(res.stdout.decode('utf-8'))
 
         try:
             res = subprocess.run(['kubectl', '--context='+ self.cluster,

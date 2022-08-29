@@ -19,7 +19,7 @@ def execute_command(cluster, node, cmd, *args):
 
         # Fetch the first node and remove node/ prefix
         node = output[0].replace('node/', '')
-    print("Executing command on node: f{node} in cluster f{cluster}")
+    print(f"Executing command on node: {node} in cluster {cluster}")
     res = subprocess.run(['kubectl', 'debug', 'node/' + node,
                           '--context', cluster,
                           '-it', '--image=docker.io/library/alpine',

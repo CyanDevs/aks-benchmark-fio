@@ -67,7 +67,7 @@ def create_cluster(name, vm_size, enable_kata, args):
         if node.returncode:
             os._exit(node.returncode)
         
-        res = subprocess.run(['kubectl', 'label', node.stdout.decode('utf-8').strip(), 'kubernetes.azure.com/aks-local-ssd=true'])
+        res = subprocess.run(['kubectl', 'label', ,'--overwrite', node.stdout.decode('utf-8').strip(), 'kubernetes.azure.com/aks-local-ssd=true'])
         if res.returncode:
             os._exit(res.returncode)
 
