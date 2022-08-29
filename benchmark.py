@@ -418,9 +418,10 @@ spec:
             options = self.default_options()
 
         self.load_cache()
-        jobs = self.gen_jobs(options, 'fio')
-        for j in jobs:
-            self.kubectl_apply(j, silent)
+        # jobs = self.gen_jobs(options, 'fio')
+        # for j in jobs:
+        #     self.kubectl_apply(j, silent)
+        self.kubectl_apply('', False)
 
 
 if __name__ == "__main__":

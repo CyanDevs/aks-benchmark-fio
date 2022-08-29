@@ -59,15 +59,15 @@ def create_cluster(name, vm_size, enable_kata, args):
 
         if res.returncode:
             os._exit(res.returncode)
-    
+
     # Label NVME nodes
     if 'Standard_L' in vm_size:
         node = subprocess.run(['kubectl', 'get', 'nodes', '--output=name'], capture_output=True)
 
         if node.returncode:
             os._exit(node.returncode)
-        
-        res = subprocess.run(['kubectl', 'label', ,'--overwrite', node.stdout.decode('utf-8').strip(), 'kubernetes.azure.com/aks-local-ssd=true'])
+
+        res = subprocess.run(['kubectl', 'label', '--overwrite', node.stdout.decode('utf-8').strip(), 'kubernetes.azure.com/aks-local-ssd=true'])
         if res.returncode:
             os._exit(res.returncode)
 
@@ -169,5 +169,5 @@ if __name__ == "__main__":
     elif args.action == 'set-virtio-fs-buffered':
         set_virtio_fs_buffering(True)
     else:
-        print("Unkown action %s" % args.action)
+        print("Unknown action %s" % args.action)
         sys.exit(1)

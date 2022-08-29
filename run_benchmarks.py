@@ -22,18 +22,18 @@ if args.manage_clusters:
     clusters.create_clusters(args)
 
 options = [
-    ('name', 'test'),
-    ('filename', 'test'),
-    ('ioengine', 'libaio'),
-    ('readwrite', 'randread', 'randwrite', 'randrw'),
-    ('direct', '1'),
-    ('ramp_time', 30),
-    ('runtime', 30),
-    ('time_based', 1),
-    ('size', '4g'),
-    ('group_reporting',),
-    ('bs', '1k', '2k', '4k', '8k', '16k', '32k', '64k', '128k', '256k'),
-    ('numjobs', '1', '2', '4'),
+#     ('name', 'test'),
+#     ('filename', 'test'),
+#     ('ioengine', 'libaio'),
+#     ('readwrite', 'randread', 'randwrite', 'randrw'),
+#     ('direct', '1'),
+#     ('ramp_time', 30),
+#     ('runtime', 30),
+#     ('time_based', 1),
+#     ('size', '4g'),
+#     ('group_reporting',),
+#     ('bs', '1k', '2k', '4k', '8k', '16k', '32k', '64k', '128k', '256k'),
+#     ('numjobs', '1', '2', '4'),
 ]
 
 def run_benchmark(cluster_name, node_type, options):
@@ -57,24 +57,24 @@ def run_benchmark(cluster_name, node_type, options):
 def run_benchmarks():
     clusters.set_virtio_fs_buffering(False)
 
-    iodepths = [
-        ('iodepth', 1, 8, 64),
-        ('iodepth', 2, 16, 128),
-        ('iodepth', 4, 32, 256),
-    ]
+    # iodepths = [
+    #     ('iodepth', 1, 8, 64),
+    #     ('iodepth', 2, 16, 128),
+    #     ('iodepth', 4, 32, 256),
+    # ]
 
-    idx = 0
+    # idx = 0
     
     threads = []
     for c in clusters.clusters:
         opts = options.copy()
-        opts.append(iodepths[idx])
+        # opts.append(iodepths[idx])
         t = threading.Thread(target=run_benchmark, args=(*c, opts))
         threads.append(t)
 
-        idx += 1
-        if idx >= len(iodepths):
-            idx = 0
+        # idx += 1
+        # if idx >= len(iodepths):
+        #     idx = 0
 
     for t in threads:
         t.start()
