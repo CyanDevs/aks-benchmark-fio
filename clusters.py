@@ -210,7 +210,7 @@ def create_cluster(name, vm_size, enable_kata, args):
                               '--overwrite-existing'])
 
     with open(f'cluster_{name}.yaml', 'w') as f:
-        f.write(cluster_template % {'id': name})
+        f.write(cluster_template % {'id': name.lower()})
 
     res = subprocess.run(['kubectl', 'apply', '-f', f'cluster_{name}.yaml'])
 
